@@ -1,0 +1,10 @@
+.DS_Store
+derby.log
+.springBeans
+.classpath
+.settings
+target/
+.project
+*.jar
+*.prefs
+application.properties
