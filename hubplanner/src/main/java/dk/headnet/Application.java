@@ -1,123 +1,131 @@
 package dk.headnet;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import dk.headnet.Hubplanner.Booking;
+import dk.headnet.Hubplanner.HubplannerAPI;
+import dk.headnet.Hubplanner.Resource;
+import dk.headnet.Liquidplanner.Activity;
+import dk.headnet.Liquidplanner.Assignment;
+import dk.headnet.Liquidplanner.LiquidplannerAPI;
+import dk.headnet.Liquidplanner.Person;
 
-@Component
 public class Application {
-	
-    //@Value("${hub.apikey}")
-    private static String HUBAPIKEY="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE0MzI4MTE3ODMsInNjb3BlIjoiU0NPUEVfUkVBRF9XUklURSIsImlzcyI6IjU1NjZmMDNiNmNlNmZmMGQwN2VmZWZiNiIsInJlc291cmNlIjoiNTU1ZGM4N2ViYzhlN2EzZjA2Zjk3NjU2In0.enPmEa-7Z7rLIcxOC-DyWWemaItjpG8EyE2a3EjTfPs";
-    //@Value("${hub.apiurl}")
-    private static String HUBAPIURL="https://api.hubplanner.com/v1/";
+	private static Properties props;
 
+    public static void main(String args[]) throws FileNotFoundException, IOException, InterruptedException {
+    	props = new Properties();
+        props.load(new FileInputStream(args[0]));
+        
+    	LiquidplannerAPI lp = new LiquidplannerAPI(props);
+    	/*HubplannerAPI hub = new HubplannerAPI(props);
 
-    public static void main(String args[]) throws ClassNotFoundException {
-        doSearch("resource", "firstName", "Thomas");
-        System.out.println(".................");
-        doGet("project"); // /555dd97cff96f9550db3c086");
+    	liquidplanner(lp);
+
+    	// For now just use this as test input - this is what I expect from Liquidplanner, for each user.
+    	/*String[][] allLPvacation = { { "2015-10-01", "2015-10-01" }, {"2015-10-03", "2015-10-03"}, {"2015-10-05", "2015-10-05"}, {"2015-10-07", "2015-10-18"} };
+    	transferVacation(hub, "mine@headnet.dk", allLPvacation);
+    	*/
+    	
+    	
     }
-    
-    public static void doSearch(String type, String field, String value) {
-    	HttpEntity<Map<String,String>> req = new HttpEntity<Map<String,String>>(getBody(field, value), getHeaders());
-    	RestTemplate resttpl = new RestTemplate();
-    	Resource[] res = resttpl.postForObject(HUBAPIURL+"resource/search", req, Resource[].class);
-    	for (Resource r : res) {
-    		System.out.println(r.get_id() + ", " + r.getEmail() + ", " + r.getFirstName() + " " + r.getLastName());
+
+    private static void liquidplanner(LiquidplannerAPI lp) throws FileNotFoundException, IOException, InterruptedException {
+  	
+    	Person[] lppeople = lp.getPersons();
+    	if (lppeople == null) {
+    		System.err.println("No persons found in Liquidplanner.");
+    		return;
+    	}
+    	
+    	
+    	
+    	Activity[] acts = lp.getActivities();
+    	if (acts != null && acts.length > 0) {
+    		for (Activity act : acts) {
+    			if (act.getFinish_date() == null) {
+    				act.setFinish_date(act.getStart_date());
+    			}
+    			String email = "NONE";
+    			if (act.getAssignments() != null) {
+    				Assignment[] assmt = act.getAssignments();
+    				for (Person lpp : lppeople) {
+    					if (lpp.getId().equalsIgnoreCase(assmt[0].getPerson_id())) {
+    						email = lpp.getEmail();
+    					}
+    				}
+    			}
+    			if (email.equalsIgnoreCase("anne@headnet.dk")) {
+    				System.out.println(act.getActivity_id() + ", " + act.getProject_id() + ". " + act.getStart_date() + " - " + act.getFinish_date() + " for " + email);
+    			}
+    		}
     	}
     }
     
-    public static void failed_getObject(String resid) {
-    	// Denne duer ikke, da der mangler headers med bla. Authorization.
-    	HttpEntity<Map<String,String>> req = new HttpEntity<Map<String,String>>(getHeaders());
-    	RestTemplate resttpl = new RestTemplate();
-    	Resource res = resttpl.getForObject(HUBAPIURL+"resource/"+resid, Resource.class);
-    	System.out.println(res.toString());
-    }
-
-    public static void getTimeEntries(String resid) {
-    	RestTemplate restTemplate = new RestTemplate();
-    	HttpEntity<String> entity = new HttpEntity<String>(getHeaders());
-
-    	ResponseEntity<String> o = restTemplate.exchange(HUBAPIURL+"resource/"+resid, HttpMethod.GET, entity, String.class);
-    	System.out.println(o.getBody());
+    /* Book vacation for user with given email.
+     * 
+     */
+    private static void transferVacation(HubplannerAPI hub, String email, String[][] allLPvacation) throws FileNotFoundException, IOException, InterruptedException {
+    	Resource[] person = hub.findResources("email", email);
+    	if (person != null) {
+    		System.out.println("Got person: " + person[0].toString());
+    	    Booking[] hubvacations = hub.findBookings(person[0].get_id(), props.getProperty("hub.vacation.eventid"));
+    	    
+    	    if (hubvacations != null) {
+    	    	for (Booking hv : hubvacations) {
+    	    		System.out.println("    " + hv.toString());
+    	    	}
+    	    }
+    	    
+    	    for (String[] vacation : allLPvacation) {
+    	    	if ( ! vacationExists(vacation, hubvacations)) {
+    	    		System.out.println("vac not found: " + vacation[0] + "-" + vacation[1]);
+    	    		Booking newvac = hub.bookVacation(person[0].get_id(), vacation[0], vacation[1]);
+    	    	} else {
+    	    		System.out.println("vac found: " + vacation[0] + "-" + vacation[1]);
+    	    	}
+    	    }
+   	
+    	}
     }
     
-    public static void doGet(String suffix) throws ClassNotFoundException {
-    	HttpEntity<Map<String,String>> httpEntity = new HttpEntity<Map<String,String>>(getBody(), getHeaders());
-    	RestTemplate restTemplate = new RestTemplate();
-    	ResponseEntity<String> res = restTemplate.exchange(HUBAPIURL+suffix, HttpMethod.GET, httpEntity, String.class);
-    	System.out.println(res.getBody());
+    /* Compare 1 period, vac, with a list of bookings in Hubplanner.
+    *  vac contains 2 date strings, each of which is like "2015-02-30".
+    */
+    private static boolean vacationExists(String[] vac, Booking[] hubvacations) {
+    	System.out.println(vac[0] + "-" + vac[1]);
+    	
+    	for (Booking hv : hubvacations) {
+    		if (hv.getStart().startsWith(vac[0]) && hv.getEnd().startsWith(vac[1])) {
+    			return true;
+    		}
+    	}
+    	return false;
     }
-    
-	private static Map<String,String> getBody(String field, String value) {
-        Map<String, String> body = new HashMap<String, String>();
-        body.put(field, value);
-        
-        return body;
-	}
-	
-	private static Map<String,String> getBody() {
-        Map<String, String> body = new HashMap<String, String>();
-        return body;
-	}
 
-	private static HttpHeaders getHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Accept", "application/json");
-        headers.set("Content-Type", "application/json");
-        headers.set("Authorization", HUBAPIKEY);
-
-        return headers;
-	}
-    
-    /*    
-    public static void doPost() {
-    	MultiValueMap<String, Object> requestBody = new LinkedMultiValueMap<String, Object>();
-        requestBody.add("lastName", "Neidhardt");
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add("Accept", "application/json");
-        headers.add("Content-Type", "application/json");
-        headers.set("Authorization", HUBAPIKEY);
-
-        HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
-
-        RestTemplate restTemplate = new RestTemplate();
-        String response = restTemplate.postForObject("https://abc.com/api/request", httpEntity, String.class);
-        JSONParser parser = new JSONParser();
-        try {
-            JSONObject jsonObject = (JSONObject) parser.parse(response);
-            System.out.println(jsonObject.get("status"));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }    }
-*/
-	/*
-	public static void older_doPost() {
-		MultiValueMap<String, String> body = new LinkedMultiValueMap<String, String>();     
-		body.add("lastName", "Benali");
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, getHeaders());
-		
-		RestTemplate restTemplate = new RestTemplate();
-
-		HttpEntity<String> response = restTemplate.exchange("/api/url", HttpMethod.POST, httpEntity, String.class);
-		
-
-		// MyModel model = restTemplate.exchange("/api/url", HttpMethod.POST, httpEntity, MyModel.class);
-	}
-*/
+    /*
+    public static void getStuff(HubplannerAPI hub) throws InterruptedException {
+    	// Get stuff this way:
+    	Resource[] allres = hub.doGet("/resource", Resource[].class);
+    	for (Resource r : allres) {
+    		System.out.println("Resource: " + r.get_id() + ", " + r.getEmail() + ", " + r.getFirstName() + " " + r.getLastName());
+    	}
+    	
+    	Event[] allevents = hub.doGet("/event", Event[].class);
+    	for (Event e : allevents) {
+    		System.out.println("Event: " + e.get_id() + ": " + e.getName() + " " + e.getCreatedDate());
+    	}
+    	
+    	Project[] allprojects = hub.doGet("/project", Project[].class);
+    	for (Project p : allprojects) {
+    		System.out.println("Project: " + p.get_id() + ": " + p.getName() + ", " + p.getCreatedDate());
+    	}
+    	
+    	// Or this way:
+    	Project[] projects = hub.findProjects("resource", "some_resource_id");
+    }
+    */
 }
