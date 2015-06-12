@@ -3,34 +3,42 @@ package dk.headnet.Liquidplanner;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Properties;
 
 import javax.xml.bind.DatatypeConverter;
 import org.springframework.http.HttpHeaders;
 
 public class LiquidplannerAPI extends dk.headnet.RestBase {
-
-	private final Properties properties;
     private final String USER;
     private final String PASSWORD;
     private final String APIURL;
-    private final String ACTIVITYID;
     
-    public LiquidplannerAPI(Properties props) throws FileNotFoundException, IOException {
-    	this.properties = props;
-    	APIURL = properties.getProperty("lp.apiurl");
-    	USER = properties.getProperty("lp.user");
-    	PASSWORD = properties.getProperty("lp.password");
-    	ACTIVITYID = properties.getProperty("lp.activity.id");
+    public LiquidplannerAPI(String apiurl, String user, String pwd) throws FileNotFoundException, IOException {
+        this.APIURL = apiurl;
+    	this.USER = user;
+    	this.PASSWORD = pwd;
     }
     
     public Person[] getPersons() throws UnsupportedEncodingException, IOException, InterruptedException {
     	return(this.doGet(APIURL + "/workspaces/35031/members", getHeaders(), Person[].class));
     }
     
-    public Activity[] getActivities()  throws UnsupportedEncodingException, IOException, InterruptedException {
-    	// Man ku måske her tilføje et filter så man kun får activities fra dette år, +/- 1.
-    	return(this.doGet(APIURL+"/workspaces/35031/treeitems?depth=-1&leaves=true&filter=activity_id="+ACTIVITYID, getHeaders(), Activity[].class));
+    /**
+     * Returns LP activities with given ID, e.g. vacations.
+     * If days is > 0, only returns those activities that were created within 'days' of now, both in past & future.
+     * @param days
+     * @return
+     * @throws UnsupportedEncodingException
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    public Activity[] getActivities(int days, String activityid)  throws UnsupportedEncodingException, IOException, InterruptedException {
+    	String datefilter="";
+    	
+    	if (days > 0) {
+    		datefilter = "&filter[]=created within " + days;
+    	}
+    	
+    	return(this.doGet(APIURL+"/workspaces/35031/treeitems?depth=-1&leaves=true&filter[]=activity_id="+activityid+datefilter, getHeaders(), Activity[].class));
     }
 
 

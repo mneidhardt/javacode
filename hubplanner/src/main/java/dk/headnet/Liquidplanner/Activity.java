@@ -133,68 +133,68 @@ public class Activity {
 /*
 
 {
-    "activity_id": 60889,
-    "work": 75,
-    "alerts": [],
-    "project_id": 3072504,
-    "client_id": 2200408,
-    "client_name": "Headnet - internt",
-    "created_at": "2014-07-09T09:07:51+00:00",
-    "created_by": 129079,
-    "custom_field_values": {
-        "Customer Report Type": "None"
-    },
-    "done_on": "2014-09-07",
-    "started_on": "2014-08-25",
-    "start_date": "2014-08-25",
-    "description": "",
-    "earliest_finish": null,
-    "earliest_start": null,
-    "expected_finish": null,
-    "expected_start": null,
-    "p98_finish": null,
-    "global_priority": [
-        1,
-        101,
-        402,
-        1043,
-        101
-    ],
-    "global_package_priority": null,
-    "has_note": false,
-    "high_effort_remaining": 0,
-    "is_done": true,
-    "is_on_hold": false,
-    "effective_is_on_hold": false,
-    "is_packaged_version": false,
-    "is_shared": false,
-    "latest_finish": null,
-    "low_effort_remaining": 0,
-    "manual_alert": "",
-    "max_effort": null,
-    "name": "Sommerferie del 2",
-    "assignments": [
-        {
-            "person_id": 418815,
-            "team_id": null,
-            "low_effort_remaining": 0,
-            "high_effort_remaining": 0,
-            "treeitem_id": 16008861,
-            "space_id": 35031,
-            "activity_id": 60889,
-            "is_done": true,
-            "daily_limit": null,
-            "position": 0,
-            "hours_logged": 75,
-            "expected_finish": null,
-            "expected_start": null,
-            "can_destroy": false,
-            "type": "Assignment",
-            "id": 356703
-        }
-    ],
-    "parent_id": 15590393,
-        "finish_date": "2014-09-07",
+        "activity_id": 60889,
+        "work": 0,
+        "alerts": [],
+        "project_id": 3072504,
+        "client_id": 2200408,
+        "client_name": "Headnet - internt",
+        "created_at": "2015-02-09T08:01:57+00:00",
+        "created_by": 129079,
+        "custom_field_values": {
+            "Customer Report Type": "None"
+        },
+        "done_on": null,
+        "started_on": "2015-08-03",
+        "start_date": "2015-08-03",
+        "description": "",
+        "earliest_finish": "2015-08-09T21:59:59+00:00",
+        "earliest_start": "2015-08-02T22:00:00+00:00",
+        "expected_finish": "2015-08-09T21:59:59+00:00",
+        "expected_start": "2015-08-02T22:00:00+00:00",
+        "p98_finish": "2015-08-09T21:59:59+00:00",
+        "global_priority": [
+            1,
+            101,
+            402,
+            1043,
+            301
+        ],
+        "global_package_priority": null,
+        "has_note": false,
+        "high_effort_remaining": 40,
+        "is_done": false,
+        "is_on_hold": false,
+        "effective_is_on_hold": false,
+        "is_packaged_version": false,
+        "is_shared": false,
+        "latest_finish": "2015-08-09T21:59:59+00:00",
+        "low_effort_remaining": 40,
+        "manual_alert": "",
+        "max_effort": null,
+        "name": "Sommerferie",
+        "assignments": [
+            {
+                "person_id": 418815,
+                "team_id": null,
+                "low_effort_remaining": 40,
+                "high_effort_remaining": 40,
+                "treeitem_id": 20458948,
+                "space_id": 35031,
+                "activity_id": 60889,
+                "is_done": false,
+                "daily_limit": null,
+                "position": 1,
+                "hours_logged": 0,
+                "expected_finish": "2015-08-09T21:59:59+00:00",
+                "expected_start": "2015-08-02T22:00:00+00:00",
+                "can_destroy": false,
+                "type": "Assignment",
+                "id": 12373296
+            }
+        ],
+        "parent_id": 15590393,
+        "finish_date": "2015-08-09",
         "external_reference": null,
         "package_id": null,
         "parent_ids": [
@@ -210,11 +210,21 @@ public class Activity {
         ],
         "package_ids": [],
         "package_crumbs": [],
-        "occurrences": [],
-        "updated_at": "2014-09-26T06:53:31+00:00",
+        "occurrences": [
+            {
+                "earliest_start": "2015-08-02T22:00:00+00:00",
+                "expected_start": "2015-08-02T22:00:00+00:00",
+                "earliest_finish": "2015-08-09T21:59:59+00:00",
+                "latest_finish": "2015-08-09T21:59:59+00:00",
+                "expected_finish": "2015-08-09T21:59:59+00:00",
+                "p98_finish": "2015-08-09T21:59:59+00:00",
+                "type": "Occurrence",
+                "id": 99189408722
+            }
+        ],
+        "updated_at": "2015-02-09T08:02:43+00:00",
         "updated_by": 129079,
         "type": "Event",
-        "id": 16008861
-    },
-
+        "id": 20458948
+    }
 */

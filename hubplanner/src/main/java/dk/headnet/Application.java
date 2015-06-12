@@ -3,6 +3,8 @@ package dk.headnet;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import dk.headnet.Hubplanner.Booking;
@@ -15,117 +17,165 @@ import dk.headnet.Liquidplanner.Person;
 
 public class Application {
 	private static Properties props;
+	private static LiquidplannerAPI lp;
+	private static HubplannerAPI hub;
 
-    public static void main(String args[]) throws FileNotFoundException, IOException, InterruptedException {
-    	props = new Properties();
-        props.load(new FileInputStream(args[0]));
+    public static void main(String[] args) throws FileNotFoundException, IOException, InterruptedException {
+        /*
+         * Currently, these are in the properties file:
+         hub.apikey = 
+         hub.apiurl = 
+         hub.vacation.eventid = 555dc87ebc8e7a3f06f9765c // The ID for the Hubplanner event Vacation.
+
+         lp.user = 
+         lp.password = 
+         lp.apiurl = 
+         lp.activity.id = 60889 // The id for Liquidplanner event Vacation 020
+         lp.vacationwithin.days = 200
+
+         application.name=lphub
+        */
+
         
-    	LiquidplannerAPI lp = new LiquidplannerAPI(props);
-    	/*HubplannerAPI hub = new HubplannerAPI(props);
+        
+        
+        if (args == null || args.length == 0) {
+            System.out.println("Syntax: java -jar <jarfilename> <propertiesfile> [-dryrun]");
+            System.out.println("If 2nd argument is \"-dryrun\", the program does not book any holidays, but only writes dates/users to stdout.");
+            System.exit(0);
+        }
+        props = new Properties();
+        props.load(new FileInputStream(args[0]));
 
-    	liquidplanner(lp);
-
-    	// For now just use this as test input - this is what I expect from Liquidplanner, for each user.
-    	/*String[][] allLPvacation = { { "2015-10-01", "2015-10-01" }, {"2015-10-03", "2015-10-03"}, {"2015-10-05", "2015-10-05"}, {"2015-10-07", "2015-10-18"} };
-    	transferVacation(hub, "mine@headnet.dk", allLPvacation);
-    	*/
-    	
-    	
+        lp = new LiquidplannerAPI(props.getProperty("lp.apiurl"), props.getProperty("lp.user"), props.getProperty("lp.password"));
+        hub = new HubplannerAPI(props.getProperty("hub.apiurl"), props.getProperty("hub.apikey"));
+        transferVacations((args.length > 1 && args[1].equalsIgnoreCase("-dryrun")));
     }
-
-    private static void liquidplanner(LiquidplannerAPI lp) throws FileNotFoundException, IOException, InterruptedException {
-  	
-    	Person[] lppeople = lp.getPersons();
-    	if (lppeople == null) {
-    		System.err.println("No persons found in Liquidplanner.");
-    		return;
-    	}
-    	
-    	
-    	
-    	Activity[] acts = lp.getActivities();
-    	if (acts != null && acts.length > 0) {
-    		for (Activity act : acts) {
-    			if (act.getFinish_date() == null) {
-    				act.setFinish_date(act.getStart_date());
-    			}
-    			String email = "NONE";
-    			if (act.getAssignments() != null) {
-    				Assignment[] assmt = act.getAssignments();
-    				for (Person lpp : lppeople) {
-    					if (lpp.getId().equalsIgnoreCase(assmt[0].getPerson_id())) {
-    						email = lpp.getEmail();
-    					}
-    				}
-    			}
-    			if (email.equalsIgnoreCase("anne@headnet.dk")) {
-    				System.out.println(act.getActivity_id() + ", " + act.getProject_id() + ". " + act.getStart_date() + " - " + act.getFinish_date() + " for " + email);
-    			}
-    		}
-    	}
-    }
-    
+   
     /* Book vacation for user with given email.
      * 
      */
-    private static void transferVacation(HubplannerAPI hub, String email, String[][] allLPvacation) throws FileNotFoundException, IOException, InterruptedException {
-    	Resource[] person = hub.findResources("email", email);
-    	if (person != null) {
-    		System.out.println("Got person: " + person[0].toString());
-    	    Booking[] hubvacations = hub.findBookings(person[0].get_id(), props.getProperty("hub.vacation.eventid"));
-    	    
-    	    if (hubvacations != null) {
-    	    	for (Booking hv : hubvacations) {
-    	    		System.out.println("    " + hv.toString());
-    	    	}
-    	    }
-    	    
-    	    for (String[] vacation : allLPvacation) {
-    	    	if ( ! vacationExists(vacation, hubvacations)) {
-    	    		System.out.println("vac not found: " + vacation[0] + "-" + vacation[1]);
-    	    		Booking newvac = hub.bookVacation(person[0].get_id(), vacation[0], vacation[1]);
-    	    	} else {
-    	    		System.out.println("vac found: " + vacation[0] + "-" + vacation[1]);
-    	    	}
-    	    }
-   	
-    	}
-    }
-    
-    /* Compare 1 period, vac, with a list of bookings in Hubplanner.
-    *  vac contains 2 date strings, each of which is like "2015-02-30".
-    */
-    private static boolean vacationExists(String[] vac, Booking[] hubvacations) {
-    	System.out.println(vac[0] + "-" + vac[1]);
-    	
-    	for (Booking hv : hubvacations) {
-    		if (hv.getStart().startsWith(vac[0]) && hv.getEnd().startsWith(vac[1])) {
-    			return true;
-    		}
-    	}
-    	return false;
+    private static void transferVacations(boolean dryrun) throws FileNotFoundException, IOException, InterruptedException {
+        if (dryrun) {
+            System.out.println("Dryrun, so not booking anything, just printing found vacations to stdout.");
+        }
+        
+        Person[] lppeople = lp.getPersons();
+        Activity[] activities = lp.getActivities(Integer.parseInt(props.getProperty("lp.vacationwithin.days", "200")), props.getProperty("lp.activity.id"));
+        Map<String,String> hubresources = getHubresources(lppeople);
+        Map<String, Booking[]> hubbookings = getHubbookings(lppeople, hubresources);
+
+        for (Activity act : activities) {
+            if (act.getStart_date() == null) {
+                continue;
+            } else if (act.getFinish_date() == null) {
+                act.setFinish_date(act.getStart_date());
+            }
+
+            String email = getEmailFromAssignment(act.getAssignments(), lppeople);
+
+            if (email != null && hubresources.containsKey(email)) {
+                System.out.print("Booking LPVacation in Hubplanner: "
+                        + act.getActivity_id() + ": " + act.getStart_date()
+                        + " - " + act.getFinish_date() + " for " + email + ": ");
+
+                if (!vacationExists(act.getStart_date(), act.getFinish_date(), hubbookings.get(email))) {
+                    if ( ! dryrun) {
+                        hub.bookVacation(hubresources.get(email), props.getProperty("hub.vacation.eventid"), act.getStart_date(), act.getFinish_date());
+                    }
+                    System.out.println("OK. Booked to " + hubresources.get(email));
+                } else {
+                    System.out.println("Already booked.");
+                }
+
+            } else if (email != null) {
+                System.out.println("Email " + email + " found in Liquidplanner, but not in Hubplanner.");
+            }
+        }
     }
 
-    /*
-    public static void getStuff(HubplannerAPI hub) throws InterruptedException {
-    	// Get stuff this way:
-    	Resource[] allres = hub.doGet("/resource", Resource[].class);
-    	for (Resource r : allres) {
-    		System.out.println("Resource: " + r.get_id() + ", " + r.getEmail() + ", " + r.getFirstName() + " " + r.getLastName());
-    	}
-    	
-    	Event[] allevents = hub.doGet("/event", Event[].class);
-    	for (Event e : allevents) {
-    		System.out.println("Event: " + e.get_id() + ": " + e.getName() + " " + e.getCreatedDate());
-    	}
-    	
-    	Project[] allprojects = hub.doGet("/project", Project[].class);
-    	for (Project p : allprojects) {
-    		System.out.println("Project: " + p.get_id() + ": " + p.getName() + ", " + p.getCreatedDate());
-    	}
-    	
-    	// Or this way:
-    	Project[] projects = hub.findProjects("resource", "some_resource_id");
+    
+    /** Returns a map linking email to Hub resource_ID.
+     * In Hubplanner a resource is, at least in this context, a person.
+     * 
+     * @param lppeople
+     * @return
+     * @throws InterruptedException
+     */
+    private static Map<String, String> getHubresources(Person[] lppeople) throws InterruptedException {
+        Map<String, String> hubresources = new HashMap<String, String>();
+
+        for (Person lpperson : lppeople) {
+            Resource[] resource = hub.findResources("email", lpperson.getEmail());
+            if (resource != null && resource.length > 0) {
+                hubresources.put(lpperson.getEmail(), resource[0].get_id());
+            }
+        }
+
+        return hubresources;
     }
-    */
+
+    /**
+     * Returns the existing bookings for every person (i.e. email) in Liquidplanner.
+     * This is in the form of a map, key=email, value=list of bookings for this person.
+     *  
+     * @param lppeople
+     * @return
+     * @throws InterruptedException
+     */
+    private static Map<String, Booking[]> getHubbookings(Person[] lppeople, Map<String, String> email2Hubresource) throws InterruptedException {
+        Map<String, Booking[]> allbookings = new HashMap<String, Booking[]>();
+
+        for (Person lpperson : lppeople) {
+            if (email2Hubresource.containsKey(lpperson.getEmail())) {
+                Booking[] hubvacations = hub.findBookings(email2Hubresource.get(lpperson.getEmail()), props.getProperty("hub.vacation.eventid"));
+
+                if (hubvacations != null) {
+                    allbookings.put(lpperson.getEmail(), hubvacations);
+                }
+            }
+        }
+
+        return allbookings;
+    }
+
+    /**
+     * Returns the email for the person_id in this assignment.
+     * Liquidplanner activities keeps the person_id in assignments, and I get that
+     * and look up the person_id in lppeople, where I then find the email.
+     * See Activity class for example of data.
+     * @param assmt
+     * @param lppeople
+     * @return
+     */
+    private static String getEmailFromAssignment(Assignment[] assmt, Person[] lppeople) {
+        if (assmt != null) {
+            for (Person lpp : lppeople) {
+                if (lpp.getId().equalsIgnoreCase(assmt[0].getPerson_id())) {
+                    return lpp.getEmail();
+                }
+            }
+        }
+
+        return null;
+    }
+	
+    /*
+     * Compare 1 period, given as (startdate, enddate), with a list of bookings
+     * in Hubplanner. startdate and enddate each contains a string such as
+     * "2015-02-30".
+     */
+    private static boolean vacationExists(String startdate, String enddate, Booking[] hubvacations) {
+
+        if (hubvacations == null) {
+            return false;
+        }
+
+        for (Booking hv : hubvacations) {
+            if (hv.getStart().startsWith(startdate) && hv.getEnd().startsWith(enddate)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

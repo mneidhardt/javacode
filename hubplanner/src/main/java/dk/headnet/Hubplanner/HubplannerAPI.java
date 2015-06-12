@@ -4,7 +4,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.springframework.http.HttpHeaders;
 
@@ -17,15 +16,12 @@ import org.springframework.http.HttpHeaders;
  *
  */
 public class HubplannerAPI extends dk.headnet.RestBase {
-	private final Properties properties;
-    private final String HUBAPIKEY;
     private final String HUBAPIURL;
+    private final String HUBAPIKEY;
     
-    public HubplannerAPI(Properties props) throws FileNotFoundException, IOException {
-    	this.properties = props;
-    	HUBAPIURL = properties.getProperty("hub.apiurl");
-    	HUBAPIKEY = properties.getProperty("hub.apikey");
-
+    public HubplannerAPI(String apiurl, String apikey) throws FileNotFoundException, IOException {
+        this.HUBAPIURL = apiurl;
+        this.HUBAPIKEY = apikey;
     }
     
     /**
@@ -68,10 +64,10 @@ public class HubplannerAPI extends dk.headnet.RestBase {
     	return(super.doPost(HUBAPIURL+"/project/search", this.getBody(field, value), this.getHeaders(), Project[].class));
     }
     
-    public Booking bookVacation(String resourceid, String startdate, String enddate) throws InterruptedException {
+    public Booking bookVacation(String resourceid, String eventid, String startdate, String enddate) throws InterruptedException {
         Map<String, String> body = new HashMap<String, String>();
         body.put("resource", resourceid);
-        body.put("project", properties.getProperty("hub.vacation.eventid"));
+        body.put("project", eventid);
         body.put("start", startdate);
         body.put("end", enddate);
         body.put("allDay", "true");
