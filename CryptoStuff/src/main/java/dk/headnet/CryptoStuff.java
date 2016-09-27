@@ -1,6 +1,9 @@
 package dk.headnet;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
@@ -10,6 +13,7 @@ import java.util.Random;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeUtility;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.IllegalFieldValueException;
@@ -91,6 +95,22 @@ public class CryptoStuff {
 		
 		Duration dd1 = new Duration(date, now);
 		return dd1.getMillis();	
+	}
+	
+	public static String md5fromfile(String filename) {
+		try {
+			FileInputStream fis = new FileInputStream(new File(filename));
+			//String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
+			String md5 = DigestUtils.md5Hex(fis);
+			fis.close();
+			return md5;
+		} catch (FileNotFoundException fe) {
+			System.err.println("File not found: " + fe.getMessage());
+		} catch (IOException ie) {
+			System.err.println("IOException: " + ie.getMessage());
+		}
+		
+		return null;
 	}
 
 	

@@ -22,6 +22,11 @@ public class Application {
 	
 	public static void main(String[] args) {
 		
+		System.out.println(CryptoStuff.md5fromfile(args[0]));
+	}
+	
+	public static void oldMain(String[] args) {
+		
 		String syntax = " Forventer disse argumenter:\n" +
 						"date instno callbackurl useremail altkey secret\n" +
 						"  date = YYYYMMDDHHMMSS i UTC,\n" +
